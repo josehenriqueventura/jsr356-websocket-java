@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>JSR356 API para Java WebSocket</title>
+        <meta charset="UTF-8" />
+        <script src="http://maps.googleapis.com/maps/api/js?sensor=false"></script>
+
+        <script type="text/javascript">
+            var websocket;
+            var map;
+
+            function initializeEvents() {
+
+                websocket.onerror = function(event) {
+                    alert("Error : " + event.data);
+                };
+
+                websocket.onmessage = function(event) {
+
+                    var coordinates = event.data.replace("(", "").replace(")", "").split(",");
+
+                    var marker = new google.maps.Marker({
+                        map: map,
+                        position: new google.maps.LatLng(coordinates[0], coordinates[1]),
+                        draggable: true
+                    });
+
+                    google.maps.event.addListener(marker, 'click', function() {
+                        marker.setVisible(false); // maps API hide call
+                    });
+                };
+
+                websocket.onclose = function(event) {
+                    alert("Closed connection : " + event.data);
+                };
+            }
+            ;
+
+            function sendMessage(event) {
+                if (websocket.readyState == 3) {
+                    alert("Sem Conexão com o servidor.");
+                } else {
+                    websocket.send(event.latLng);
+                }
+            }
+
+            function initializeMaps() {
+                var mapDiv = document.getElementById('map-canvas');
+
+                map = new google.maps.Map(mapDiv, {
+                    center: new google.maps.LatLng(-22.90740814334179, -47.0625114440918),
+                    zoom: 13,
+                    mapTypeId: google.maps.MapTypeId.ROADMAP
+                });
+
+                google.maps.event.addListener(map, 'click', function(event) {
+                    var marker = new google.maps.Marker({
+                        map: map,
+                        position: event.latLng,
+                        draggable: true
+                    });
+
+                    sendMessage(event);
+                });
+            }
+
+            function closeConection() {
+                websocket.close();
+            };
+
+            function conect() {
+                /** Abre a conexão WebSocket*/
+                websocket = new WebSocket("ws://localhost:8080/websocket-java/epalertproblemas");
+
+                /** Inicializa os eventos*/
+                initializeEvents();
+            };
+
+            google.maps.event.addDomListener(window, 'load', initializeMaps);
+        </script>
+    </head>
+
+    <body>
+        <div id="body">
+
+            <div id="map-canvas" style="width: 500px; height: 400px"></div>
+
+            <form name="message" action="">
+                <input type="button" name="conectButton" value="Conectar" onclick="conect();" />
+                <input type="button" name="closeConectionButton" value="Desconectar" onclick="closeConection();" />
+            </form>
+
+        </div>
+    </body>
+</html>
